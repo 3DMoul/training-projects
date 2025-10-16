@@ -1,0 +1,107 @@
+#include <iostream>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+
+float A, B, C;
+
+const float CubeWidth = 40;
+const int Width = 80, Height = 44;
+
+float zBuffer[Width * Height];
+char Buffer[Width * Height];
+
+int BackGroundASCIICode = ' ';
+int DistanceFromCam = 100;
+float K1 = 40;
+
+float X, Y, Z;
+float ooz;
+
+int Xp, Yp;
+int Idx;
+
+float CalculateX(int i, int j, int k)
+{
+    return j * sin(A) * sin(B) * cos(C) - k * cos(A) * sin(B) * cos(C) + j * cos(A) * sin(C) + k * sin(A) * sin(C) + i * cos(B) * cos(C);
+}
+float CalculateY(int i, int j, int k)
+{
+    return j * cos(A) * cos(C) + k * sin(A) * cos(C) - j * sin(A) * sin(B) * sin(C) + k * cos(A) * sin(B) * sin(C) - i * cos(B) * sin(C);
+}
+float CalculateZ(int i, int j, int k)
+{
+    return k * cos(A) * cos(B) - j * sin(A) * cos(B) + i * sin(B);
+}
+void CalculateForPoint(float i, float j, float k, int ch)
+{
+
+    X = CalculateX(i, j, k);
+    Y = CalculateY(i, j, k);
+    Z = CalculateZ(i, j, k) + DistanceFromCam;
+
+    ooz = 1 / Z;
+
+    Xp = (int)(Width / 2 + K1 * ooz * X * 2);
+    Yp = (int)(Height / 2 + K1 * ooz * Y);
+    Idx = Xp + Yp * Width;
+    if (Idx >= 0 && Idx < Width * Height)
+    {
+
+        if (ooz > zBuffer[Idx])
+        {
+
+            zBuffer[Idx] = ooz;
+            Buffer[Idx] = ch;
+
+        }
+
+    }
+
+}
+
+
+
+int main()
+{
+    
+    printf("\x1b[2J");
+   
+    while (1)
+    {
+        memset(Buffer, BackGroundASCIICode, Width * Height);
+        memset(zBuffer, 0, Width * Height * 4);
+
+        for (float i = -CubeWidth / 2; i < CubeWidth / 2; i += 0.15)
+        {
+            for (float j = -CubeWidth / 2; j < CubeWidth / 2; j += 0.15)
+            {
+                CalculateForPoint(i, j, -CubeWidth / 2, '@');
+                CalculateForPoint(CubeWidth / 2, j, i, '$');
+                CalculateForPoint(-CubeWidth / 2, j, -i, '~');
+                CalculateForPoint(-i, j, CubeWidth / 2, '#');
+                CalculateForPoint(i, -CubeWidth / 2, -j, ';');
+                CalculateForPoint(i, CubeWidth / 2, j, '+');
+            }
+        }
+
+        printf("\x1b[H");
+        for (int k = 0; k < Width * Height; k++)
+        {
+            putchar(k % Width ? Buffer[k] : 10);
+        }
+
+        A += 0.05;
+        B += 0.05;
+        C += 0.01;
+        Sleep(10);
+    }
+
+
+
+
+    return 0;
+}
